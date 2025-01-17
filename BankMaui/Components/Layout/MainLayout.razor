@@ -1,17 +1,108 @@
-﻿@inherits LayoutComponentBase
+﻿@using BankMaui.Models
+@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
+<!-- CascadingValue is used to share RequiredDetails across child components -->
+<CascadingValue Value="@requiredDetails">
+    <div class="page">
+        <main>
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
     </div>
+</CascadingValue>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+@code
+{
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+    // RequiredDetails class with four properties
+    public class RequiredDetails
+    {
+        public List<UserInfoMoodel> user_info_list { get; set; }
+        public List<TransactionsModel> transactions_info_list { get; set; }
+        public List<DebtModel> debt_info_list { get; set; }
+        public string CurrencyTypeUser { get; set; }
+        public string CurrentUserUsername { get; set; }
+        public List<Dictionary<string, string>> FirstLoginCurrencyType { get; set; }
+
+    }
+
+    // Instance of RequiredDetails to be shared with child components
+    public RequiredDetails requiredDetails = new RequiredDetails()
+        {
+            user_info_list = new List<UserInfoMoodel>()
+            {
+                new UserInfoMoodel(user_AvailableBalance:0.0f,user_DebtBalance:0.0f,user_firstName:"Admin",user_lastName:"Admin",
+                user_type:"admin",user_username:"admin",user_userPassword:"admin"),//default user for test
+                new UserInfoMoodel(user_AvailableBalance:0.0f,user_DebtBalance:0.0f,user_firstName:"user",user_lastName:"user",
+                user_type:"user",user_username:"user",user_userPassword:"user"),//default user for test
+            },
+            transactions_info_list = new List<TransactionsModel>(),  
+            debt_info_list = new List<DebtModel>()
+            {
+                // new DebtModel(     
+                //         DebtId: Guid.NewGuid().ToString(),
+                //         TransactionType: "Debt",
+                //         DebtTitle: "Personal Loan",
+                //         DebtDate: new DateTime(2019, 12, 21),
+                //         DebtSource: "Bank",
+                //         DebtAmount: 300.0f,
+                //         TransactionFlow: "In",
+                //         DebtStatus: "to pay",
+                //         TransactionStatus: "Debit",
+                //         Username: "user",
+                //         debtNote:"FWSDSD"
+                // ),
+                //     new DebtModel(
+                //         DebtId: Guid.NewGuid().ToString(),
+                //         TransactionType: "Debt",
+                //         DebtTitle: "Personal Loan",
+                //         DebtDate: new DateTime(2019, 12, 21),
+                //         DebtSource: "Bank",
+                //         DebtAmount: 500.0f,
+                //         TransactionFlow: "In",
+                //         DebtStatus: "to pay",
+                //         TransactionStatus: "Debit",
+                //         Username: "user",
+                //          debtNote:"FWSDSD"
+                // ),
+                //     new DebtModel(
+                //         DebtId: Guid.NewGuid().ToString(),
+                //         TransactionType: "Debt",
+                //         DebtTitle: "Personal Loan",
+                //         DebtDate: new DateTime(2019, 12, 21),
+                //         DebtSource: "Bank",
+                //         DebtAmount: 600.0f,
+                //         TransactionFlow: "Out",
+                //         DebtStatus: "paid",
+                //         TransactionStatus: "Credit",
+                //         Username: "user",
+                //          debtNote:"FWSDSD"
+                // ),
+                //     new DebtModel(
+                //         DebtId: Guid.NewGuid().ToString(),
+                //         TransactionType: "Debt",
+                //         DebtTitle: "Personal Loan",
+                //         DebtDate: new DateTime(2019, 12, 21),
+                //         DebtSource: "Bank",
+                //         DebtAmount: 800.0f,
+                //         TransactionFlow: "Out",
+                //         DebtStatus: "paid",
+                //         TransactionStatus: "Credit",
+                //         Username: "user",
+                //         debtNote:"FWSDSD"
+                // ),
+
+            },  
+            CurrencyTypeUser = "",
+            CurrentUserUsername = "",
+            FirstLoginCurrencyType = new List<Dictionary<string, string>>()
+        };
+
+}
+
+
+@* @inject RequiredDetails requiredDetails
+<!-- Now you can access the properties of RequiredDetails -->
+<h3>User Info List Count: @requiredDetails.user_info_list.Count</h3>
+ *@

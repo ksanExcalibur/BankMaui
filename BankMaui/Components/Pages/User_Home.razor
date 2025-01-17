@@ -1,0 +1,1276 @@
+﻿@page "/userhome"
+@using BankMaui.Models
+@using static BankMaui.Components.Layout.MainLayout
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+
+
+<style>
+   /* Main Container */
+.main-container {
+    max-height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    background-color: #e0f7fa; /* Light cyan background for a fresh aesthetic */
+    color: #333; /* Dark text for readability */
+}
+
+/* Child Container */
+.child-container {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 12px; /* Slightly more rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+}
+
+    .child-container h5 {
+        text-align: center;
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+        color: #343a40; /* Dark color for headings */
+        font-family: 'Roboto', sans-serif; /* Clean font style */
+    }
+
+/* Balance Box */
+.balance-box {
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px; /* More rounded corners for a softer feel */
+    background-color: #e3f2fd; /* Soft light blue for balance boxes */
+    color: #333; /* Dark text for contrast */
+    font-weight: bold;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Enhanced shadow for a sleek look */
+    transition: transform 0.3s, box-shadow 0.3s; /* Smooth hover effects */
+}
+
+    .balance-box:hover {
+        transform: scale(1.05); /* Slight zoom on hover */
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Stronger shadow on hover */
+    }
+
+    .balance-box.available {
+        border: 2px solid #66bb6a; /* Fresh green border for available */
+        background-color: #d7ffd9; /* Soft green background for available */
+        color: #388e3c; /* Dark green text */
+    }
+
+    .balance-box.debt {
+        border: 2px solid #ff7043; /* Warm orange-red border for debt */
+        background-color: #ffebee; /* Light peach background for debt */
+        color: #b23c17; /* Rich dark orange-red text */
+    }
+
+    /* Calendar Popup */
+    .calendar-popup {
+        position: absolute;
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        padding: 15px;
+        z-index: 1000;
+    }
+
+    .calendar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.2);
+        z-index: 999;
+    }
+
+  /* Transaction Form */
+.transaction-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: auto;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+}
+
+.transaction-form label {
+    font-weight: bold;
+}
+
+.transaction-form button {
+    margin-top: 10px;
+    background-color: #dc3545;  /* Red color */
+    color: white;  /* White text */
+    border: none;
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.transaction-form button:hover {
+    background-color: #c82333;  /* Darker red for hover effect */
+    border-color: #bd2130;
+}
+
+/* Table Styles */
+.table-responsive {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.table {
+    margin-bottom: 0;
+    width: 100%;
+    text-align: center;
+    border-collapse: collapse;
+}
+
+.table-bordered {
+    border: 1px solid #dee2e6;
+}
+
+.table-light th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: bold;
+}
+
+.table tbody tr:nth-child(odd) {
+    background-color: #f1f3f5;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #fff;
+}
+</style>
+
+
+<!-- Main Container -->
+<div class="container-fluid main-container">
+    <h1 class="text-center mb-4">User Dashboard</h1>
+
+    <!-- Container 1: User Info & Actions -->
+    <div class="child-container">
+        <h5>User Info & Actions</h5>
+        <div class="row mb-3">
+            <!-- Available Balance -->
+            <div class="col-md-6">
+                <div class="balance-box available">
+                    <h6>Available Balance</h6>             
+                    <p class="fs-4 fw-bold">@requiredDetails.CurrencyTypeUser :@GetUserAvailableBalance()</p>
+                </div>
+            </div>
+            <!-- Debt Balance -->
+            <div class="col-md-6">
+                <div class="balance-box debt">
+                    <h6>Debt Balance</h6>
+                    <p class="fs-4 fw-bold">@requiredDetails.CurrencyTypeUser : @GetUserDebtBalance()</p>
+                </div>
+            </div>
+        </div>
+        <!-- Action Buttons -->
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <button class="btn btn-primary" @onclick="ToggleDateRangePicker">
+                Sort <i class="bi bi-calendar"></i>
+            </button>
+            <button class="btn btn-secondary" @onclick="UpdateTittleTransactions">Update Title for transactions.</button>
+            <button class="btn btn-secondary" @onclick="UpdateNoteTransactions">Update Note for transactions.</button>
+            <button class="btn btn-secondary" @onclick="UpdateTittleDebt">Update Title for debt.</button>
+            <button class="btn btn-secondary" @onclick="UpdateNoteDebt">Update Note for debt.</button>
+            <button class="btn btn-secondary" @onclick="CheckOutflow">Check Outflow</button>
+            <button class="btn btn-secondary" @onclick="ClearDebt">Clear Debt</button>
+            <button class="btn btn-danger" @onclick="Logout">Logout</button>
+        </div>
+    </div>
+
+    <!-- Date Range Picker Popup -->
+    @if (IsDateRangePickerVisible)
+    {
+        <div class="calendar-overlay" @onclick="ToggleDateRangePicker"></div>
+        <div class="calendar-popup">
+            <h6>Select Date Range</h6>
+            <label>From Date:</label>
+            <input type="date" class="form-control" @bind="FromDate" />
+            <label>To Date:</label>
+            <input type="date" class="form-control" @bind="ToDate" />
+        </div>
+    }
+
+    <!-- Container 2: Transaction Form -->
+    <div class="child-container">
+        <h5>Transaction Form</h5>
+        <form class="transaction-form">
+            <label>Transaction Flow</label>
+
+            <select class="form-select" @bind="TransactionsFlow">
+                <option selected>Select the TransactionsFlow.</option>
+                <option value="In">In</option>
+                <option value="Out">Out</option>
+            </select>
+
+            <label>Transaction Type</label>
+            <select class="form-select" @bind="TransactionsType">
+                <option selected>Select the TransactionsType.</option>
+                <option value="Credit">Credit</option>
+                <option value="Debit">Debit</option>
+            </select>
+
+            <label>Transaction Date</label>
+            <input type="date" @bind="TransactionsDate" class="form-control" />
+
+            <label>Transaction Amount</label>
+            <input type="number" @bind="TransactionsAmount" class="form-control" placeholder="Enter amount" />
+
+            <label>Transaction Note</label>
+            <input type="text" @bind="TransactionsNote" class="form-control" placeholder="Enter note" />
+
+            <label>Transaction Title</label>
+            <input type="text" @bind="TransactionsTittle" class="form-control" placeholder="Enter title" />
+
+            <label>Transaction Source</label>
+            <input type="text" @bind="TransactionsSource" class="form-control" placeholder="Enter source" />
+
+            <label>Transaction ID (For Update Only)</label>
+            <input type="text" @bind="TransactionsId" class="form-control" placeholder="Enter transactions ID" />
+
+            <label>Debt ID (For Update Only)</label>
+            <input type="text" @bind="DebtId" class="form-control" placeholder="Enter debt ID" />
+
+            <button type="button" @onclick="DoTransactions" class="btn btn-success w-100 mt-3">Do  Transaction</button>
+        </form>
+    </div>
+
+    <!-- Container 3: Transactions Details -->
+    <div class="child-container">
+
+        <h5>Transaction Details</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <!-- Label -->
+            <label class="fw-bold">All Transactions</label>
+            <!-- Search Field -->
+            <input type="text" class="form-control w-50" placeholder="Search by title" @bind="SearchTittleTransactions" />
+
+            <div>
+
+                <label class="fw-bold">  Select filter type.</label>
+                <!-- Sort Dropdown -->
+                <select class="form-select w-auto" @bind="SortTansactionsType">
+                    <option value="">Select type.</option>
+                    <option value="all">All</option>
+                    <option value="Credit">Credit</option>
+                    <option value="Debit">Debit</option>
+                    <option value="Ascending">Ascending amount</option>
+                    <option value="Descending">Descending amount</option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Title</th>
+                        <th>Flow</th>
+                        <th>Date</th>
+                        <th>Source</th>
+                        <th>Note</th>
+                        <th>Amount</th>
+                        <th>Username</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @{
+                        if (
+                        !FromDate.HasValue && !ToDate.HasValue &&
+                        String.IsNullOrEmpty(SearchTittleTransactions) &&
+                        String.IsNullOrEmpty(SortTansactionsType)
+                        )
+                        {
+
+                            @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername).ToList())
+                            {
+                                <tr>
+                                    <td>@data.TrId</td>
+                                    <td>@data.TrType</td>
+                                    <td>@data.TrTitle</td>
+                                    <td>@data.TrFlow</td>
+                                    <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@data.TrSource</td>
+                                    <td>@data.TrNote</td>
+                                    <td>@data.TrAmount.ToString()</td>
+                                    <td>@data.UserUsername</td>
+                                </tr>
+                            }
+                        }
+
+                        if
+                        (
+                        FromDate.HasValue && ToDate.HasValue &&
+                        !String.IsNullOrEmpty(SearchTittleTransactions) &&
+                        !String.IsNullOrEmpty(SortTansactionsType)
+
+                        )
+                        {
+
+                            @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername
+                    && x.TrDate >= FromDate && x.TrDate <= ToDate && x.TrTitle == SearchTittleTransactions && x.TrType == SortTansactionsType
+                    ).ToList())
+                            {
+                                <tr>
+                                    <td>@data.TrId</td>
+                                    <td>@data.TrType</td>
+                                    <td>@data.TrTitle</td>
+                                    <td>@data.TrFlow</td>
+                                    <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@data.TrSource</td>
+                                    <td>@data.TrNote</td>
+                                    <td>@data.TrAmount.ToString()</td>
+                                    <td>@data.UserUsername</td>
+                                </tr>
+                            }
+
+                        }
+
+
+                        if (FromDate.HasValue && ToDate.HasValue)
+                        {
+
+                            @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.TrDate >= FromDate && x.TrDate <= ToDate).ToList())
+                            {
+                                <tr>
+                                    <td>@data.TrId</td>
+                                    <td>@data.TrType</td>
+                                    <td>@data.TrTitle</td>
+                                    <td>@data.TrFlow</td>
+                                    <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@data.TrSource</td>
+                                    <td>@data.TrNote</td>
+                                    <td>@data.TrAmount.ToString()</td>
+                                    <td>@data.UserUsername</td>
+                                </tr>
+                            }
+                        }
+
+
+                        if
+                        (!String.IsNullOrEmpty(SearchTittleTransactions))
+                        {
+
+                            var user_data = requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername && x.TrTitle.ToString().ToLower().Trim() == SearchTittleTransactions.ToString().ToLower().Trim()).ToList();
+                            if (user_data != null)
+                            {
+                                @foreach (var data in user_data)
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString()</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+
+                            else
+                            {
+                                <tr>
+
+                                    <td>No data available of that tittle..</td>
+
+                                </tr>
+                            }
+
+                        }
+
+
+                        if
+                        (!String.IsNullOrEmpty(SortTansactionsType))
+                        {
+
+                            if (SortTansactionsType == "all")
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString()</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+                            else if (SortTansactionsType == "Ascending")
+                            {
+                                var sorted_data = requiredDetails.transactions_info_list
+                                .Where(x => x.UserUsername == requiredDetails.CurrentUserUsername)
+                                .OrderBy(x => x.TrAmount)
+                                .ToList();
+
+                                foreach (var data in sorted_data)
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString()</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+
+
+                            }
+                            else if (SortTansactionsType == "Descending")
+                            {
+
+                                var sorted_data = requiredDetails.transactions_info_list
+                                .Where(x => x.UserUsername == requiredDetails.CurrentUserUsername)
+                                .OrderByDescending(x => x.TrAmount)
+                                .ToList();
+
+                                foreach (var data in sorted_data)
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString()</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+
+
+                            }
+                            else
+                            {
+
+                                var user_data = requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername && x.TrType == SortTansactionsType).ToList();
+
+                                if (user_data != null)
+                                {
+                                    @foreach (var data in user_data)
+                                    {
+                                        <tr>
+                                            <td>@data.TrId</td>
+                                            <td>@data.TrType</td>
+                                            <td>@data.TrTitle</td>
+                                            <td>@data.TrFlow</td>
+                                            <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                            <td>@data.TrSource</td>
+                                            <td>@data.TrNote</td>
+                                            <td>@data.TrAmount.ToString()</td>
+                                            <td>@data.UserUsername</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+
+                                    <tr>
+
+                                        <td>No data available of that type.</td>
+
+                                    </tr>
+                                }
+                            }
+
+                        }
+
+
+
+
+                    }
+
+                </tbody>
+
+
+            </table>
+        </div>
+    </div>
+
+
+    <!-- Container 4: Debt Transactions Details -->
+    <div class="child-container">
+        <h5>Debt Transactions Details</h5>
+
+        <!-- Section 1: All Debt Transactions -->
+        <div class="mb-4">
+            <label class="fw-bold">All Debt Transactions</label>
+            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Debt ID</th>
+                            <th>Transaction Type</th>
+                            <th>Debt Title</th>
+                            <th>Debt Date</th>
+                            <th>Debt Source</th>
+                            <th>Debt Amount</th>
+                            <th>Transaction Flow</th>
+                            <th>Debt Status</th>
+                            <th>Transaction Status</th>
+                            <th>Username</th>
+                            <th>Debt Note</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            if (FromDate.HasValue && ToDate.HasValue)
+                            {
+                                @foreach (var data in requiredDetails.debt_info_list.Where(x => x.DebtDate >= FromDate && x.DebtDate <= ToDate).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.DebtId</td>
+                                        <td>@data.TransactionType</td>
+                                        <td>@data.DebtTitle</td>
+                                        <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.DebtSource</td>
+                                        <td>@data.DebtAmount.ToString("C")</td>
+                                        <td>@data.TransactionFlow</td>
+                                        <td>@data.DebtStatus</td>
+                                        <td>@data.TransactionStatus</td>
+                                        <td>@data.Username</td>
+                                        <td>@data.DebtNote</td>
+                                    </tr>
+                                }
+                            }
+                            else{
+                                @foreach (var data in requiredDetails.debt_info_list.ToList())
+                                {
+                                    <tr>
+                                        <td>@data.DebtId</td>
+                                        <td>@data.TransactionType</td>
+                                        <td>@data.DebtTitle</td>
+                                        <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.DebtSource</td>
+                                        <td>@data.DebtAmount.ToString("C")</td>
+                                        <td>@data.TransactionFlow</td>
+                                        <td>@data.DebtStatus</td>
+                                        <td>@data.TransactionStatus</td>
+                                        <td>@data.Username</td>
+                                        <td>@data.DebtNote</td>
+                                    </tr>
+                                }
+                            }
+
+                        }
+
+
+                        <!-- Additional rows dynamically generated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 2: Pending Debt to Pay -->
+        <div class="mb-4">
+            <label class="fw-bold">Pending Debt to Pay</label>
+            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Debt ID</th>
+                            <th>Transaction Type</th>
+                            <th>Debt Title</th>
+                            <th>Debt Date</th>
+                            <th>Debt Source</th>
+                            <th>Debt Amount</th>
+                            <th>Transaction Flow</th>
+                            <th>Debt Status</th>
+                            <th>Transaction Status</th>
+                            <th>Username</th>
+                            <th>Debt Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        @{
+                            if (FromDate.HasValue && ToDate.HasValue)
+                            {
+                                @foreach (var data in requiredDetails.debt_info_list.Where(x => x.DebtDate >= FromDate && x.DebtDate <= ToDate && x.DebtStatus=="to pay").ToList())
+                                {
+                                    <tr>
+                                        <td>@data.DebtId</td>
+                                        <td>@data.TransactionType</td>
+                                        <td>@data.DebtTitle</td>
+                                        <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.DebtSource</td>
+                                        <td>@data.DebtAmount.ToString("C")</td>
+                                        <td>@data.TransactionFlow</td>
+                                        <td>@data.DebtStatus</td>
+                                        <td>@data.TransactionStatus</td>
+                                        <td>@data.Username</td>
+                                        <td>@data.DebtNote</td>
+                                    </tr>
+                                }
+                            }
+                            else{
+                                @foreach (var data in requiredDetails.debt_info_list.Where(debt => debt.DebtStatus == "to pay"))
+                                {
+                                    <tr>
+                                        <td>@data.DebtId</td>
+                                        <td>@data.TransactionType</td>
+                                        <td>@data.DebtTitle</td>
+                                        <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.DebtSource</td>
+                                        <td>@data.DebtAmount.ToString("C")</td>
+                                        <td>@data.TransactionFlow</td>
+                                        <td>@data.DebtStatus</td>
+                                        <td>@data.TransactionStatus</td>
+                                        <td>@data.Username</td>
+                                        <td>@data.DebtNote</td>
+                                    </tr>
+                                }
+                            }
+
+                        }
+
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 3: Clear Debt -->
+        <div>
+            <label class="fw-bold">Clear Debt</label>
+            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Debt ID</th>
+                            <th>Transaction Type</th>
+                            <th>Debt Title</th>
+                            <th>Debt Date</th>
+                            <th>Debt Source</th>
+                            <th>Debt Amount</th>
+                            <th>Transaction Flow</th>
+                            <th>Debt Status</th>
+                            <th>Transaction Status</th>
+                            <th>Username</th>
+                            <th>Debt Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            if (FromDate.HasValue && ToDate.HasValue)
+                            {
+                                @foreach (var data in requiredDetails.debt_info_list.Where(x => x.DebtDate >= FromDate && x.DebtDate <= ToDate && x.DebtStatus == "paid").ToList())
+                                {
+                                    <tr>
+                                        <td>@data.DebtId</td>
+                                        <td>@data.TransactionType</td>
+                                        <td>@data.DebtTitle</td>
+                                        <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.DebtSource</td>
+                                        <td>@data.DebtAmount.ToString("C")</td>
+                                        <td>@data.TransactionFlow</td>
+                                        <td>@data.DebtStatus</td>
+                                        <td>@data.TransactionStatus</td>
+                                        <td>@data.Username</td>
+                                        <td>@data.DebtNote</td>
+                                    </tr>
+                                }
+                            }
+                            else{
+                                @foreach (var data in requiredDetails.debt_info_list.Where(debt => debt.DebtStatus == "paid"))
+                                {
+                                    <tr>
+                                        <td>@data.DebtId</td>
+                                        <td>@data.TransactionType</td>
+                                        <td>@data.DebtTitle</td>
+                                        <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.DebtSource</td>
+                                        <td>@data.DebtAmount.ToString("C")</td>
+                                        <td>@data.TransactionFlow</td>
+                                        <td>@data.DebtStatus</td>
+                                        <td>@data.TransactionStatus</td>
+                                        <td>@data.Username</td>
+                                        <td>@data.DebtNote</td>
+                                    </tr>
+                                }
+                            }
+
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container 5: Total Inflow, Outflow, and Highlights -->
+    <div class="child-container">
+        <h5>Total Inflow, Outflow, and Highlights</h5>
+
+        <!-- Total Inflow -->
+        <div class="sub-container">
+            <label>Total Inflow:</label>
+            <p class="tag-display">@requiredDetails.CurrencyTypeUser : @TotalInflow</p>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Flow</th>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Note</th>
+                            <th>Amount</th>
+                            <th>Username</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            if (FromDate.HasValue && ToDate.HasValue)
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.TrDate >= FromDate && x.TrDate <= ToDate && x.UserUsername==requiredDetails.CurrentUserUsername && x.TrFlow=="In").ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "In").ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+
+                        }
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Total Outflow -->
+        <div class="sub-container">
+            <label>Total Outflow:</label>
+            <p class="tag-display">@requiredDetails.CurrencyTypeUser : @TotalOutflow </p>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Flow</th>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Note</th>
+                            <th>Amount</th>
+                            <th>Username</th>
+                        </tr>
+
+                    </thead>
+                    <tbody>
+                        @{
+                            if (FromDate.HasValue && ToDate.HasValue)
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.TrDate >= FromDate && x.TrDate <= ToDate && x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "Out").ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "Out").ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+
+                        }
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Highest Inflow -->
+        <div class="sub-container">
+            <label>Highest Inflow:</label>
+            <p class="tag-display">@requiredDetails.CurrencyTypeUser : @HighestInflowTransaction</p>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Flow</th>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Note</th>
+                            <th>Amount</th>
+                            <th>Username</th>
+                        </tr>
+
+                    </thead>
+                    <tbody>
+
+                        @{
+                            if (FromDate.HasValue && ToDate.HasValue)
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.TrDate >= FromDate && x.TrDate <= ToDate && x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "In" && x.TrAmount.ToString() == HighestInflowTransaction.ToString()).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "In" && x.TrAmount.ToString() == HighestInflowTransaction.ToString()).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+
+                        }
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Lowest Inflow -->
+        <div class="sub-container">
+            <label>Lowest Inflow:</label>
+            <p class="tag-display">@requiredDetails.CurrencyTypeUser : @LowestInflowTransaction</p>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Flow</th>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Note</th>
+                            <th>Amount</th>
+                            <th>Username</th>
+                        </tr>
+
+                    </thead>
+                    <tbody>
+                        @{
+                            if (FromDate.HasValue && ToDate.HasValue)
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.TrDate >= FromDate && x.TrDate <= ToDate && x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "In" && x.TrAmount.ToString() == LowestInflowTransaction.ToString()).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "In" && x.TrAmount.ToString() == LowestInflowTransaction.ToString()).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+
+                        }
+                        <!-- Data dynamically populated -->
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Highest Outflow -->
+        <div class="sub-container">
+            <label>Highest Outflow:</label>
+            <p class="tag-display">@requiredDetails.CurrencyTypeUser: @HighestOutflowTransaction</p>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Flow</th>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Note</th>
+                            <th>Amount</th>
+                            <th>Username</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            if (FromDate.HasValue && ToDate.HasValue)
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.TrDate >= FromDate && x.TrDate <= ToDate && x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "Out" && x.TrAmount.ToString() == HighestOutflowTransaction.ToString()).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "Out" && x.TrAmount.ToString() == HighestOutflowTransaction.ToString()).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+
+                        }
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Lowest Outflow -->
+        <div class="sub-container">
+            <label>Lowest Outflow:</label>
+            <p class="tag-display">@requiredDetails.CurrencyTypeUser : @LowestOutflowTransaction</p>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Flow</th>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Note</th>
+                            <th>Amount</th>
+                            <th>Username</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            if (FromDate.HasValue && ToDate.HasValue)
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.TrDate >= FromDate && x.TrDate <= ToDate && x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "Out" && x.TrAmount.ToString() == LowestOutflowTransaction.ToString()).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var data in requiredDetails.transactions_info_list.Where(x => x.UserUsername == requiredDetails.CurrentUserUsername && x.TrFlow == "Out" && x.TrAmount.ToString() == LowestOutflowTransaction.ToString()).ToList())
+                                {
+                                    <tr>
+                                        <td>@data.TrId</td>
+                                        <td>@data.TrType</td>
+                                        <td>@data.TrTitle</td>
+                                        <td>@data.TrFlow</td>
+                                        <td>@data.TrDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@data.TrSource</td>
+                                        <td>@data.TrNote</td>
+                                        <td>@data.TrAmount.ToString("C")</td>
+                                        <td>@data.UserUsername</td>
+                                    </tr>
+                                }
+                            }
+
+                        }
+
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Container for Debt Transactions (Highest and Lowest Debts) -->
+        <div class="child-container">
+            <h5>Debt Transactions Details</h5>
+
+            <!-- Section 1: Lowest Debt -->
+            <div class="mb-4">
+                <label class="fw-bold">Lowest Debt</label>
+                <p class="tag-display" id="lowest-debt-amount">@requiredDetails.CurrencyTypeUser : @LowestDebt</p>
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Debt ID</th>
+                                <th>Transaction Type</th>
+                                <th>Debt Title</th>
+                                <th>Debt Date</th>
+                                <th>Debt Source</th>
+                                <th>Debt Amount</th>
+                                <th>Transaction Flow</th>
+                                <th>Debt Status</th>
+                                <th>Transaction Status</th>
+                                <th>Username</th>
+                                <th>Debt Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                if (FromDate.HasValue && ToDate.HasValue)
+                                {
+                                    @foreach (var data in requiredDetails.debt_info_list.Where(x => x.DebtDate >= FromDate && x.DebtDate <= ToDate && x.Username == requiredDetails.CurrentUserUsername && x.TransactionType == "Debt" && x.DebtAmount.ToString() == LowestDebt.ToString()).ToList())
+                                    {
+                                        <tr>
+                                            <td>@data.DebtId</td>
+                                            <td>@data.TransactionType</td>
+                                            <td>@data.DebtTitle</td>
+                                            <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                            <td>@data.DebtSource</td>
+                                            <td>@data.DebtAmount.ToString("C")</td>
+                                            <td>@data.TransactionFlow</td>
+                                            <td>@data.DebtStatus</td>
+                                            <td>@data.TransactionStatus</td>
+                                            <td>@data.Username</td>
+                                            <td>@data.DebtNote</td>
+                                        </tr>
+                                    }
+                                }
+                                else{
+                                    @foreach (var data in requiredDetails.debt_info_list.Where(x => x.Username == requiredDetails.CurrentUserUsername && x.TransactionType == "Debt" && x.DebtAmount.ToString() == LowestDebt.ToString()).ToList())
+                                    {
+                                        <tr>
+                                            <td>@data.DebtId</td>
+                                            <td>@data.TransactionType</td>
+                                            <td>@data.DebtTitle</td>
+                                            <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                            <td>@data.DebtSource</td>
+                                            <td>@data.DebtAmount.ToString("C")</td>
+                                            <td>@data.TransactionFlow</td>
+                                            <td>@data.DebtStatus</td>
+                                            <td>@data.TransactionStatus</td>
+                                            <td>@data.Username</td>
+                                            <td>@data.DebtNote</td>
+                                        </tr>
+                                    }
+                                }
+
+                            }
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Section 2: Highest Debt -->
+            <div class="mb-4">
+                <label class="fw-bold">Highest Debt</label>
+                <p class="tag-display" id="highest-debt-amount">@requiredDetails.CurrencyTypeUser : @HighestDebt</p>
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Debt ID</th>
+                                <th>Transaction Type</th>
+                                <th>Debt Title</th>
+                                <th>Debt Date</th>
+                                <th>Debt Source</th>
+                                <th>Debt Amount</th>
+                                <th>Transaction Flow</th>
+                                <th>Debt Status</th>
+                                <th>Transaction Status</th>
+                                <th>Username</th>
+                                <th>Debt Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                if (FromDate.HasValue && ToDate.HasValue)
+                                {
+                                    @foreach (var data in requiredDetails.debt_info_list.Where(x => x.DebtDate >= FromDate && x.DebtDate <= ToDate && x.Username == requiredDetails.CurrentUserUsername && x.TransactionType == "Debt" && x.DebtAmount.ToString() == HighestDebt.ToString()).ToList())
+                                    {
+                                        <tr>
+                                            <td>@data.DebtId</td>
+                                            <td>@data.TransactionType</td>
+                                            <td>@data.DebtTitle</td>
+                                            <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                            <td>@data.DebtSource</td>
+                                            <td>@data.DebtAmount.ToString("C")</td>
+                                            <td>@data.TransactionFlow</td>
+                                            <td>@data.DebtStatus</td>
+                                            <td>@data.TransactionStatus</td>
+                                            <td>@data.Username</td>
+                                            <td>@data.DebtNote</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    @foreach (var data in requiredDetails.debt_info_list.Where(x => x.Username == requiredDetails.CurrentUserUsername && x.TransactionType == "Debt" && x.DebtAmount.ToString() == HighestDebt.ToString()).ToList())
+                                    {
+                                        <tr>
+                                            <td>@data.DebtId</td>
+                                            <td>@data.TransactionType</td>
+                                            <td>@data.DebtTitle</td>
+                                            <td>@data.DebtDate.ToString("yyyy-MM-dd")</td>
+                                            <td>@data.DebtSource</td>
+                                            <td>@data.DebtAmount.ToString("C")</td>
+                                            <td>@data.TransactionFlow</td>
+                                            <td>@data.DebtStatus</td>
+                                            <td>@data.TransactionStatus</td>
+                                            <td>@data.Username</td>
+                                            <td>@data.DebtNote</td>
+                                        </tr>
+                                    }
+                                }
+
+                            }
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div> @* main container *@
+
+<script>
+    function showAlert(message) {
+    alert(message);
+    }
+
+    function showConfirm(message, dotNetHelper) {
+    if (confirm(message)) {
+    dotNetHelper.invokeMethodAsync("ProceedWithDebt");
+    } else {
+    dotNetHelper.invokeMethodAsync("CancelTransaction");
+    }
+    }
+
+</script>
+

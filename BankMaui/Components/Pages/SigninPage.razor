@@ -1,0 +1,49 @@
+﻿@page "/signinpage"
+@inject NavigationManager Navigation
+@using BankMaui.Models
+@using static BankMaui.Components.Layout.MainLayout
+@inject IJSRuntime JS
+<h3>SigninPage</h3>
+
+<div>
+    <form>
+        <div class="mb-3">
+            <label for="exampleInputPassword1" class="form-label">Enter First name</label>
+            <input type="text" class="form-control" id="exampleInputFirstName" @bind="first_name">
+        </div>
+        <br>
+        <div class="mb-3">
+            <label for="exampleInputPassword1" class="form-label">Enter Last name</label>
+            <input type="text" class="form-control" id="exampleInputlastname" @bind="last_name">
+        </div>
+        <br>
+        <div class="mb-3">
+            <label for="exampleInputEmail1" class="form-label">Enter username</label>
+            <input type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" @bind="username">
+            <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+        </div>
+        <br />
+        <div class="mb-3">
+            <label for="exampleInputPassword1" class="form-label">Enter Password</label>
+            <input type="password" class="form-control" id="exampleInputPassword1" @bind="password">
+        </div>
+        <br />
+        <button type="button" class="btn btn-primary" @onclick="SignInUser">SignIn</button>
+    </form>
+</div>
+
+<NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+    <span class="oi oi-home" aria-hidden="true"></span> Go to Login page.
+</NavLink>
+
+<script>
+    function showAlert(message) 
+    {
+    alert(message); // Display the custom message in the alert box
+    }
+</script>
+
+@code 
+{
+  
+}

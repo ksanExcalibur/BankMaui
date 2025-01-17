@@ -1,3 +1,4 @@
+/* Main Container */
 .page {
     position: relative;
     display: flex;
@@ -8,27 +9,39 @@ main {
     flex: 1;
 }
 
+/* Sidebar Styles */
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background-image: linear-gradient(180deg, rgba(5, 39, 103, 0.8) 0%, rgba(58, 6, 71, 0.8) 70%);
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    font-family: 'Lato', sans-serif;
+    color: white;
 }
 
+/* Top Row Styles */
 .top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
+    background-color: #f5f5f5; /* Light gray */
+    border-bottom: 2px solid #e0e0e0; /* Soft border */
     justify-content: flex-end;
-    height: 3.5rem;
+    height: 4rem;
     display: flex;
     align-items: center;
+    font-family: 'Roboto', sans-serif;
+    padding: 1rem 2rem; /* Adds space inside the top-row */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
         white-space: nowrap;
         margin-left: 1.5rem;
         text-decoration: none;
+        transition: color 0.3s ease, transform 0.2s ease; /* Smooth transition on hover */
     }
 
         .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-            text-decoration: underline;
+            color: #007bff; /* Change color on hover */
+            transform: scale(1.05); /* Slight zoom effect on hover */
         }
 
         .top-row ::deep a:first-child {
@@ -36,19 +49,25 @@ main {
             text-overflow: ellipsis;
         }
 
+/* Responsive Media Queries */
 @media (max-width: 640.98px) {
     .top-row {
-        justify-content: space-between;
+        justify-content: space-between; /* Adjust layout for smaller screens */
+        padding: 10px 20px;
     }
 
         .top-row ::deep a, .top-row ::deep .btn-link {
-            margin-left: 0;
+            margin-left: 0; /* Remove left margin for mobile */
         }
+
+    .sidebar {
+        display: none; /* Hide sidebar on small screens */
+    }
 }
 
 @media (min-width: 641px) {
     .page {
-        flex-direction: row;
+        flex-direction: row; /* Switch to row-based layout on larger screens */
     }
 
     .sidebar {
@@ -75,3 +94,33 @@ main {
         padding-right: 1.5rem !important;
     }
 }
+
+/* Balance Box Styles */
+.balance-box {
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px;
+    background-color: #e3f2fd; /* Soft light blue for balance boxes */
+    color: #333; /* Dark text for contrast */
+    font-weight: bold;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Enhanced shadow for depth */
+    transition: transform 0.3s, box-shadow 0.3s; /* Smooth hover effects */
+}
+
+    .balance-box:hover {
+        transform: scale(1.05); /* Slight zoom on hover */
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Stronger shadow on hover */
+    }
+
+    .balance-box.available {
+        border: 2px solid #66bb6a; /* Fresh green border for available */
+        background-color: #d7ffd9; /* Soft green background for available */
+        color: #388e3c; /* Dark green text */
+    }
+
+    .balance-box.debt {
+        border: 2px solid #ff7043; /* Warm orange-red border for debt */
+        background-color: #ffebee; /* Light peach background for debt */
+        color: #b23c17; /* Rich dark orange-red text */
+    }
